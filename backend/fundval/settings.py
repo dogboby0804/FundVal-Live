@@ -190,23 +190,15 @@ from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
     'capture-estimate-snapshot': {
         'task': 'api.tasks.capture_estimate_snapshot',
-        'schedule': crontab(minute=0, hour=15, day_of_week='1-5'), # 每个交易日 15:00
+        'schedule': crontab(minute=5, hour=15),  # 每天 15:05，任务内判断交易日
     },
-    'audit-accuracy-task-late-night': {
+    'audit-accuracy-task': {
         'task': 'api.tasks.audit_accuracy',
-        'schedule': crontab(minute=30, hour=0, day_of_week='2-6'), # 每个交易日次日凌晨 00:30 (等待国内基金净值全部出炉)
-    },
-    'audit-accuracy-task-morning': {
-        'task': 'api.tasks.audit_accuracy',
-        'schedule': crontab(minute=30, hour=8, day_of_week='1-5'), # 每个交易日早晨 08:30 (作为 QDII 基金或极晚公告的兜底)
+        'schedule': crontab(minute=0, hour=23),  # 每天 23:00，任务内判断交易日
     },
     'update-fund-nav-task': {
         'task': 'api.tasks.update_fund_nav',
-        'schedule': crontab(minute=0, hour=22), # 每天 22:00 (初步尝试同步昨日/最新净值)
-    },
-    'update-fund-nav-task-final': {
-        'task': 'api.tasks.update_fund_nav',
-        'schedule': crontab(minute=0, hour=0), # 每天 00:00 (最终尝试同步确权净值)
+        'schedule': crontab(minute=30, hour=22),  # 每天 22:30
     },
     'update-fund-today-nav-task': {
         'task': 'api.tasks.update_fund_today_nav',
