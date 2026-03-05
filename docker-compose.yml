@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fundval}
       POSTGRES_USER: ${POSTGRES_USER:-fundval}
@@ -19,7 +19,7 @@ services:
       - fundval
 
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     # 不暴露端口到宿主机，仅容器内通信
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -30,8 +30,8 @@ services:
       - fundval
 
   backend:
-    image: jasamine/fundval-backend:latest
-    command: gunicorn fundval.wsgi:application --bind 0.0.0.0:8000 --workers 4 --access-logfile - --error-logfile -
+    image: ${BACKEND_IMAGE:-jasamine/fundval-backend:latest}
+    command: gunicorn fundval.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --access-logfile - --error-logfile -
     volumes:
       # 生产环境：只挂载配置目录，不挂载代码
       # 开发环境：取消注释下面这行以挂载本地代码
@@ -43,11 +43,12 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-fundval}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-fundval}
       - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-only}
       - DEBUG=${DEBUG:-false}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - ALLOW_REGISTER=${ALLOW_REGISTER:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -63,9 +64,9 @@ services:
       - fundval
 
   celery-worker:
-    image: jasamine/fundval-backend:latest
+    image: ${BACKEND_IMAGE:-jasamine/fundval-backend:latest}
     entrypoint: []
-    command: celery -A fundval worker -l info
+    command: celery -A fundval worker -l ${CELERY_LOGLEVEL:-info}
     volumes:
       # 生产环境：只挂载配置目录
       # - ./backend:/app
@@ -76,8 +77,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-fundval}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-fundval}
       - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-only}
       - DEBUG=${DEBUG:-false}
     depends_on:
@@ -89,9 +90,9 @@ services:
       - fundval
 
   celery-beat:
-    image: jasamine/fundval-backend:latest
+    image: ${BACKEND_IMAGE:-jasamine/fundval-backend:latest}
     entrypoint: []
-    command: celery -A fundval beat -l info
+    command: celery -A fundval beat -l ${CELERY_LOGLEVEL:-info}
     volumes:
       # 生产环境：只挂载配置目录
       # - ./backend:/app
@@ -102,8 +103,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-fundval}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-fundval}
       - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-only}
       - DEBUG=${DEBUG:-false}
     depends_on:
@@ -115,9 +116,9 @@ services:
       - fundval
 
   frontend:
-    image: jasamine/fundval-frontend:latest
+    image: ${FRONTEND_IMAGE:-jasamine/fundval-frontend:latest}
     ports:
-      - "21345:80"
+      - "${FRONTEND_PORT:-21345}:80"
     depends_on:
       backend:
         condition: service_healthy
