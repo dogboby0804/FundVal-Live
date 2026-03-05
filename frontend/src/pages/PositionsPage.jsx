@@ -24,11 +24,13 @@ import {
 import { RollbackOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import { positionsAPI, fundsAPI, aiAPI } from '../api';
 import { useAccounts } from '../contexts/AccountContext';
+import { usePreference } from '../contexts/PreferenceContext';
 import PositionCharts from '../components/PositionCharts';
 import AIAnalysisModal from '../components/AIAnalysisModal';
 
 const PositionsPage = () => {
   const [searchParams] = useSearchParams();
+  const { preferredSource } = usePreference();
   const {
     accounts: allAccounts,
     loading: accountsLoading,
@@ -133,7 +135,7 @@ const PositionsPage = () => {
         try {
           const [navsResponse, estimatesResponse] = await Promise.all([
             fundsAPI.batchUpdateNav(fundCodes),
-            fundsAPI.batchEstimate(fundCodes),
+            fundsAPI.batchEstimate(fundCodes, preferredSource), // 使用全局数据源
           ]);
 
           // 更新持仓列表中的基金数据
@@ -200,6 +202,14 @@ const PositionsPage = () => {
       loadOperations(selectedAccountId);
     }
   }, [selectedAccountId]);
+
+  // 监听数据源变化，重新加载持仓估值
+  useEffect(() => {
+    if (selectedAccountId) {
+      loadPositions(selectedAccountId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredSource]);
 
   // 监听加仓/减仓 Modal 的日期/时间变化，自动查询净值
   useEffect(() => {

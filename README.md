@@ -20,6 +20,10 @@
 
 [issue - 讨论群组](https://github.com/Ye-Yu-Mo/FundVal-Live/issues/41)
 
+## 遇到问题？
+
+**[问题排查手册](docs/问题排查.md)** — 涵盖注册、部署、数据源、持仓计算等常见问题的完整排查指南
+
 ## 快速开始
 
 整个项目分为服务端 客户端两部分
@@ -28,26 +32,79 @@
 
 ### 最快方式（Docker）
 
+#### 1. 下载配置文件
+
 ```bash
+# 下载 docker-compose.yml
 curl -O https://raw.githubusercontent.com/Ye-Yu-Mo/FundVal-Live/main/docker-compose.yml
-docker-compose up
+
+# 下载环境变量模板
+curl -O https://raw.githubusercontent.com/Ye-Yu-Mo/FundVal-Live/main/.env.example
+
+# 复制为 .env 并修改配置
+cp .env.example .env
 ```
 
-访问 http://localhost:21345
+#### 2. 修改配置（可选）
 
-**首次启动**：系统会自动同步基金数据，需要等待几分钟。
+编辑 `.env` 文件，自定义配置：
 
-如果需要修改前端端口号，请修改 `docker-compose.yml`
+```bash
+# 数据库配置
+POSTGRES_DB=fundval
+POSTGRES_USER=fundval
+POSTGRES_PASSWORD=change_me_in_production  # ⚠️ 生产环境请修改
+POSTGRES_PORT=5432
+POSTGRES_IMAGE=postgres:16-alpine  # 数据库镜像版本
 
-```yaml
-  frontend:
-    image: jasamine/fundval-frontend:latest
-    ports:
-      - "21345:80"
-    depends_on:
-      - backend
-    networks:
-      - fundval
+# Django 配置
+SECRET_KEY=change_me_in_production_use_random_string  # ⚠️ 生产环境请修改
+DEBUG=false
+ALLOWED_HOSTS=localhost,127.0.0.1  # 生产环境添加你的域名
+
+# Redis 配置
+REDIS_IMAGE=redis:7-alpine  # Redis 镜像版本
+REDIS_URL=redis://redis:6379/0
+
+# 应用配置
+ALLOW_REGISTER=false  # 是否允许用户注册
+
+# 前端配置
+FRONTEND_PORT=21345  # 前端访问端口
+FRONTEND_IMAGE=jasamine/fundval-frontend:latest  # 前端镜像版本
+
+# 后端配置
+BACKEND_IMAGE=jasamine/fundval-backend:latest  # 后端镜像版本
+GUNICORN_WORKERS=4  # Gunicorn 工作进程数（根据 CPU 核心数调整）
+
+# Celery 配置
+CELERY_LOGLEVEL=info  # 日志级别：debug, info, warning, error
+```
+
+**性能调优建议**：
+- `GUNICORN_WORKERS`：推荐设置为 `(CPU 核心数 × 2) + 1`
+- `CELERY_LOGLEVEL`：生产环境建议使用 `warning` 减少日志输出
+- 高负载场景可使用 `POSTGRES_IMAGE=postgres:16` 替代 alpine 版本
+
+#### 3. 启动服务
+
+```bash
+docker-compose up -d
+```
+
+#### 4. 访问应用
+
+访问 http://localhost:21345（或你在 `.env` 中配置的端口）
+
+**首次启动**：
+- 系统会自动运行数据库迁移
+- 自动同步基金数据（需要等待几分钟）
+- 控制台会显示 **Bootstrap Key**，用于初始化管理员账户
+
+**查看日志**：
+
+```bash
+docker-compose logs -f backend  # 查看后端日志和 Bootstrap Key
 ```
 
 ### 手动部署

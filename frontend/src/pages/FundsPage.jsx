@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { SearchOutlined, EyeOutlined, StarOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-import { fundsAPI, watchlistsAPI, preferencesAPI } from '../api';
+import { fundsAPI, watchlistsAPI } from '../api';
+import { usePreference } from '../contexts/PreferenceContext';
 
 const { Text } = Typography;
 
@@ -36,6 +37,7 @@ const ResizableTitle = (props) => {
 
 const FundsPage = () => {
   const navigate = useNavigate();
+  const { preferredSource } = usePreference();
   const [loading, setLoading] = useState(false);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [funds, setFunds] = useState([]);
@@ -44,7 +46,6 @@ const FundsPage = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [lastUpdateTime, setLastUpdateTime] = useState(null);
-  const [source, setSource] = useState('eastmoney');
   const pageSize = 10;
 
   // 自选列表相关状态
@@ -93,7 +94,7 @@ const FundsPage = () => {
   };
 
   // 加载估值和净值数据
-  const loadEstimatesAndNavs = async (fundList, sourceName = source) => {
+  const loadEstimatesAndNavs = async (fundList, sourceName = preferredSource) => {
     if (!fundList || fundList.length === 0) return;
 
     setEstimateLoading(true);
@@ -137,22 +138,17 @@ const FundsPage = () => {
     message.success('数据已刷新');
   };
 
-  // 切换数据源
-  const handleSourceChange = async (newSource) => {
-    setSource(newSource);
-    await preferencesAPI.update(newSource).catch(() => {});
-    if (funds.length > 0) {
-      await loadEstimatesAndNavs(funds, newSource);
-    }
-  };
-
   useEffect(() => {
-    // 加载用户偏好数据源
-    preferencesAPI.get().then(res => {
-      setSource(res.data.preferred_source || 'eastmoney');
-    }).catch(() => {});
     loadFunds();
   }, []);
+
+  // 监听数据源变化，重新加载估值
+  useEffect(() => {
+    if (funds.length > 0) {
+      loadEstimatesAndNavs(funds);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredSource]);
 
   const handleSearch = (value) => {
     setSearch(value);
@@ -336,16 +332,6 @@ const FundsPage = () => {
               估值更新时间: {lastUpdateTime.toLocaleTimeString()}
             </Text>
           )}
-          <Select
-            value={source}
-            onChange={handleSourceChange}
-            size="small"
-            style={{ width: 100 }}
-            options={[
-              { label: '东方财富', value: 'eastmoney' },
-              { label: '养基宝', value: 'yangjibao' },
-            ]}
-          />
           <Button
             icon={<ReloadOutlined />}
             onClick={handleRefresh}
