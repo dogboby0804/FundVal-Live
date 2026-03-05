@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Form, Input, Button, message, Space, Divider, Tag, Image, Spin, Modal, Select, Table, Popconfirm, Typography } from 'antd';
+import { Card, Form, Input, Button, message, Space, Divider, Tag, Image, Spin, Modal, Select, Table, Popconfirm, Typography, Alert } from 'antd';
 import {
   SaveOutlined, ReloadOutlined, CloudServerOutlined,
   QrcodeOutlined, CheckCircleOutlined, CloseCircleOutlined, LogoutOutlined, ImportOutlined,
@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import { isNativeApp } from '../App';
 import { sourceAPI, aiAPI } from '../api';
+import { usePreference } from '../contexts/PreferenceContext';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -35,6 +36,63 @@ const POSITION_PLACEHOLDERS = [
   { key: '{{pnl_rate}}', desc: '总盈亏比例(%)' },
   { key: '{{positions}}', desc: '持仓明细（代码|名称|份额|成本|市值|盈亏，换行分隔）' },
 ];
+
+const DataSourceCard = () => {
+  const { preferredSource, updatePreference } = usePreference();
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    form.setFieldsValue({ preferred_source: preferredSource });
+  }, [preferredSource, form]);
+
+  const handleSave = async () => {
+    const values = form.getFieldsValue();
+    setLoading(true);
+    try {
+      await updatePreference(values.preferred_source);
+      message.success('数据源设置已保存');
+    } catch (error) {
+      message.error('保存失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card title="数据源设置">
+      <Form form={form} layout="vertical" style={{ maxWidth: 600 }}>
+        <Form.Item
+          label="默认数据源"
+          name="preferred_source"
+          help="选择基金估值和净值的默认数据源"
+        >
+          <Select>
+            <Select.Option value="eastmoney">东方财富</Select.Option>
+            <Select.Option value="yangjibao">养基宝</Select.Option>
+          </Select>
+        </Form.Item>
+        <Alert
+          message="数据源影响所有估值相关数据（基金查询、持仓预估、账户盈亏）"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Form.Item>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleSave}
+            loading={loading}
+          >
+            保存设置
+          </Button>
+        </Form.Item>
+      </Form>
+    </Card>
+  );
+};
+
 
 const AIConfigCard = () => {
   const [form] = Form.useForm();
@@ -510,7 +568,9 @@ const SettingsPage = () => {
   };
 
   return (
-    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <DataSourceCard />
+
       <Card title="数据源管理">
         <YangJiBaoLogin />
         <div style={{ marginTop: 8, color: '#888', fontSize: 12 }}>

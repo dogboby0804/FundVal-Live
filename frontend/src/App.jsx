@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import { isAuthenticated } from './utils/auth';
 import { AuthProvider } from './contexts/AuthContext';
 import { AccountProvider } from './contexts/AccountContext';
+import { PreferenceProvider } from './contexts/PreferenceContext';
 
 function PrivateRoute({ children }) {
   return isAuthenticated() ? children : <Navigate to="/" />;
@@ -42,8 +43,9 @@ function App() {
     <ConfigProvider locale={zhCN}>
       <AuthProvider>
         <AccountProvider>
-          <Router>
-            <Routes>
+          <PreferenceProvider>
+            <Router>
+              <Routes>
               <Route
                 path="/"
                 element={
@@ -129,6 +131,7 @@ function App() {
               />
             </Routes>
           </Router>
+        </PreferenceProvider>
         </AccountProvider>
       </AuthProvider>
     </ConfigProvider>

@@ -57,8 +57,8 @@ def import_from_yangjibao(user, source, overwrite: bool = False) -> dict:
             account_id = yjb_account['account_id']
             account_name = yjb_account['name']
 
-            # 3. 创建/获取子账户
-            sub_account, created = Account.objects.get_or_create(
+            # 3. 创建/更新子账户（确保 parent 字段正确）
+            sub_account, created = Account.objects.update_or_create(
                 user=user,
                 name=account_name,
                 defaults={'parent': parent_account, 'is_default': False},

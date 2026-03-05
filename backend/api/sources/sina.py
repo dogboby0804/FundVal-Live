@@ -2,7 +2,7 @@ import requests
 import re
 import logging
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Dict, List
 
 from .base import BaseEstimateSource
@@ -24,6 +24,21 @@ class SinaStockSource(BaseEstimateSource):
     def fetch_realtime_nav(self, fund_code: str) -> Optional[Dict]:
         return None
 
+    def fetch_today_nav(self, fund_code: str) -> Optional[Dict]:
+        """sina 源不支持确权净值查询，仅支持实时行情"""
+        return None
+
+    def get_qrcode(self) -> Optional[Dict]:
+        """不需要 QR 登录"""
+        return None
+
+    def check_qrcode_state(self, qr_id: str) -> Optional[Dict]:
+        """不需要扫码"""
+        return None
+
+    def logout(self):
+        """无需登出"""
+        pass
     def fetch_fund_list(self) -> list:
         return []
 
@@ -38,8 +53,14 @@ class SinaStockSource(BaseEstimateSource):
         var hq_str_sh511520="富国中债7-10年期国债ETF,115.630,115.635,115.660,115.680,115.580,115.660,115.670,1402200,162158860,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2026-02-27,15:00:00,00,0";
         """
         try:
-            # 简单判断市场
-            symbol_prefix = 'sh' if fund_code.startswith(('5', '6')) else 'sz'
+            # 判断市场：上海 50/51/52/56/58/6x，深圳 15/16/18/其他
+            if fund_code.startswith(('50', '51', '52', '56', '58')):
+                symbol_prefix = 'sh'
+            elif fund_code.startswith(('15', '16', '18')):
+                symbol_prefix = 'sz'
+            else:
+                # 兜底：6 开头上海，其他深圳
+                symbol_prefix = 'sh' if fund_code.startswith('6') else 'sz'
             symbol = f'{symbol_prefix}{fund_code}'
                 
             headers = {

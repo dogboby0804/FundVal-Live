@@ -19,10 +19,12 @@ import {
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useAccounts } from '../contexts/AccountContext';
+import { usePreference } from '../contexts/PreferenceContext';
 import { accountsAPI } from '../api';
 
 const AccountsPage = () => {
   const navigate = useNavigate();
+  const { preferredSource } = usePreference();
   const {
     accounts,
     loading,
@@ -42,6 +44,12 @@ const AccountsPage = () => {
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
+
+  // 监听数据源变化，重新加载账户数据
+  useEffect(() => {
+    loadAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredSource]);
 
   // 自动选中默认父账户
   useEffect(() => {

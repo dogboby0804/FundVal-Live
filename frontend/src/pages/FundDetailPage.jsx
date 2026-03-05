@@ -12,15 +12,16 @@ import {
   message,
   Button,
   Table,
-  Select,
 } from 'antd';
 import { RobotOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
-import { fundsAPI, positionsAPI, preferencesAPI } from '../api';
+import { fundsAPI, positionsAPI } from '../api';
 import AIAnalysisModal from '../components/AIAnalysisModal';
+import { usePreference } from '../contexts/PreferenceContext';
 
 const FundDetailPage = () => {
   const { code } = useParams();
+  const { preferredSource } = usePreference();
   const [loading, setLoading] = useState(true);
   const [fund, setFund] = useState(null);
   const [estimate, setEstimate] = useState(null);
@@ -31,7 +32,6 @@ const FundDetailPage = () => {
   const [operations, setOperations] = useState([]);
   const [timeRange, setTimeRange] = useState('1M');
   const [chartLoading, setChartLoading] = useState(false);
-  const [source, setSource] = useState('eastmoney');
 
   // AI 分析
   const [aiModalVisible, setAiModalVisible] = useState(false);
@@ -168,11 +168,6 @@ const FundDetailPage = () => {
       setLoading(true);
 
       try {
-        // 加载用户偏好数据源
-        const prefRes = await preferencesAPI.get().catch(() => null);
-        const preferredSource = prefRes?.data?.preferred_source || 'eastmoney';
-        setSource(preferredSource);
-
         // 并发加载基金详情、指定源估值、准确率历史和场内价格
         const [detailRes, estimateRes, accuracyRes, marketRes] = await Promise.all([
           fundsAPI.detail(code),
@@ -207,7 +202,7 @@ const FundDetailPage = () => {
     };
 
     loadData();
-  }, [code]);
+  }, [code, timeRange, preferredSource]); // 监听 preferredSource 变化
 
   // ECharts 配置
   const chartOption = {
@@ -304,24 +299,7 @@ const FundDetailPage = () => {
       <Card
         title="基金信息"
         extra={
-          <Space wrap>
-            <Button icon={<RobotOutlined />} onClick={() => setAiModalVisible(true)}>AI 分析</Button>
-            <Select
-              value={source}
-              size="small"
-              style={{ width: 100 }}
-              onChange={async (newSource) => {
-                setSource(newSource);
-                await preferencesAPI.update(newSource).catch(() => { });
-                const res = await fundsAPI.getEstimate(code, newSource).catch(() => null);
-                setEstimate(res?.data || null);
-              }}
-              options={[
-                { label: '东方财富', value: 'eastmoney' },
-                { label: '养基宝', value: 'yangjibao' },
-              ]}
-            />
-          </Space>
+          <Button icon={<RobotOutlined />} onClick={() => setAiModalVisible(true)}>AI 分析</Button>
         }
       >
         <Descriptions column={{ xs: 1, sm: 2, md: 3 }}>
